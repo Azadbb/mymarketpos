@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>ڕێڤەبەریا کالایان - فۆتەر POS</title>
+    <style>
+        :root { --primary: #3498db; --dark: #2c3e50; --bg: #f4f7f6; --white: #ffffff; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: var(--white); padding: 30px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        
+        h2 { text-align: center; color: var(--dark); margin-bottom: 25px; }
+        .form-group { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        
+        input { 
+            width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; 
+            font-size: 16px; outline: none; box-sizing: border-box; text-align: center;
+        }
+        input:focus { border-color: var(--primary); }
+        
+        .full-width { grid-column: span 2; }
+        
+        .btn-save { 
+            width: 100%; padding: 15px; background: var(--primary); color: white; 
+            border: none; border-radius: 10px; font-size: 18px; font-weight: bold; 
+            cursor: pointer; transition: 0.3s; 
+        }
+        .btn-save:hover { background: #2980b9; }
+
+        .navbar { margin-bottom: 20px; display: flex; gap: 10px; }
+        .nav-btn { text-decoration: none; padding: 10px 15px; background: var(--dark); color: white; border-radius: 8px; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="navbar">
+        <a href="index.html" class="nav-btn">🏠 سەرەکی</a>
+        <a href="stock.html" class="nav-btn">📦 مەخزەن</a>
+    </div>
+
+    <h2>➕ زێدەکرنا کالایێ نوو</h2>
+    
+    <div class="form-group">
+        <input type="text" id="p-name" class="full-width" placeholder="ناڤێ کالای (ئایتم)">
+        <input type="text" id="p-barcode" class="full-width" placeholder="بارکۆد">
+        
+        <input type="number" id="p-cost" placeholder="بهایێ کڕینێ (تێچوو)">
+        <input type="number" id="p-price" placeholder="بهایێ فرۆشتنێ">
+        
+        <input type="number" id="p-stock" class="full-width" placeholder="کۆژمێ د مەخزەنی دا (عددد)">
+    </div>
+
+    <button class="btn-save" onclick="addProduct()">پاشکەفتکرن و زێدەکرن ✅</button>
+</div>
+
+<script>
+    const SB_URL = "https://yabwsyxffjsvkcxstevv.supabase.co";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhYndzeXhmZmpzdmtjeHN0ZXZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMjcwODUsImV4cCI6MjA4MTkwMzA4NX0.p3s-m775YzbUYWH9-6rV4gWhonwHCyoEMSB0CpkfRJ4";
+
+    async function addProduct() {
+        const name = document.getElementById('p-name').value;
+        const barcode = document.getElementById('p-barcode').value;
+        const cost = parseFloat(document.getElementById('p-cost').value);
+        const price = parseFloat(document.getElementById('p-price').value);
+        const stock = parseInt(document.getElementById('p-stock').value);
+
+        if (!name || !barcode || !price) return alert("تکایە هەمی خانان پر بکە!");
+
+        try {
+            const res = await fetch(`${SB_URL}/rest/v1/products`, {
+                method: 'POST',
+                headers: { 
+                    'apikey': SB_KEY, 
+                    'Authorization': `Bearer ${SB_KEY}`, 
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify({ 
+                    name: name, 
+                    barcode: barcode, 
+                    cost_price: cost, 
+                    price: price, 
+                    stock: stock 
+                })
+            });
+
+            if (res.ok) {
+                alert("کالا ب سەرکەفتوویی هاتە زێدەکرن! 🚀");
+                // پاککرنا خانەکان
+                document.querySelectorAll('input').forEach(i => i.value = "");
+            } else {
+                alert("خەلەتیەک هەبوو، دبیت بارکۆد دووبارە بیت!");
+            }
+        } catch (e) {
+            alert("پەیوەندی ب داتابەیسێ نەبوو!");
+        }
+    }
+</script>
+
+</body>
+</html>

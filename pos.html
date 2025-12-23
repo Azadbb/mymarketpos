@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl" id="main-html">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOTER POS - سیستەمێ گشتی</title>
+    <style>
+        :root {
+            --primary: #4361ee; --success: #2ec4b6; --danger: #e71d36;
+            --warning: #facc15; --whatsapp: #25d366; --dark: #1e293b; 
+            --bg: #f8fafc; --white: #ffffff; --shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; transition: 0.2s; }
+        body { margin: 0; background: var(--bg); color: var(--dark); overflow: hidden; height: 100vh; }
+
+        /* Navbar */
+        .top-nav { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; background: var(--white); box-shadow: 0 1px 5px rgba(0,0,0,0.05); height: 65px; }
+        .nav-links { display: flex; gap: 10px; align-items: center; }
+        .nav-link { padding: 8px 12px; text-decoration: none; color: #64748b; font-weight: 600; font-size: 13px; border-radius: 8px; }
+        .active-nav { background: #eff2ff; color: var(--primary) !important; }
+        
+        /* ئەڤ کلاسە تەنێ ئەدمین دێ شێت بینیت */
+        .admin-only { display: none; } 
+
+        .nav-controls { display: flex; align-items: center; gap: 15px; }
+        .lang-switch { display: flex; background: #f1f5f9; padding: 3px; border-radius: 10px; }
+        .l-btn { border: none; background: none; padding: 5px 10px; border-radius: 7px; cursor: pointer; font-size: 11px; font-weight: bold; }
+        .l-btn.active { background: white; color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .btn-logout { background: #fff1f2; color: var(--danger); border: 1px solid #ffe4e6; padding: 7px 12px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+
+        /* Layout */
+        .pos-container { display: grid; grid-template-columns: 1fr 400px; gap: 15px; padding: 15px; height: calc(100vh - 65px); }
+        .items-section { background: var(--white); border-radius: 20px; padding: 15px; overflow-y: auto; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+        
+        .product-card { background: #ffffff; padding: 12px; border-radius: 18px; text-align: center; cursor: pointer; border: 1px solid #f1f5f9; position: relative; }
+        .out-of-stock { background: #fee2e2 !important; border: 2px solid var(--danger) !important; opacity: 0.6; }
+        .low-stock { background: #fef9c3 !important; border: 2px solid var(--warning) !important; }
+
+        /* Cart & Buttons */
+        .cart-section { background: var(--white); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; box-shadow: var(--shadow); }
+        .total-box { display: flex; justify-content: space-between; font-size: 24px; font-weight: 900; margin: 15px 0; padding-top: 10px; border-top: 2px dashed #eee; }
+        .btn-pay { width: 100%; padding: 15px; border: none; border-radius: 12px; background: var(--success); color: white; font-weight: bold; cursor: pointer; font-size: 16px; margin-bottom: 10px; }
+        .whatsapp-link { display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; color: var(--whatsapp); font-weight: bold; font-size: 14px; margin-top: 10px; }
+
+        /* Print Styles */
+        #receipt-print { display: none; }
+        @media print {
+            body * { visibility: hidden; }
+            #receipt-print, #receipt-print * { visibility: visible; }
+            #receipt-print { display: block !important; position: absolute; left: 0; top: 0; width: 100%; direction: rtl; }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="top-nav">
+    <div class="nav-links">
+        <div style="font-weight:900; color:var(--primary); font-size: 20px; margin-right:10px;">FOTER</div>
+        <a href="pos.html" class="nav-link active-nav" id="lnk-sale">🛒 فرۆشتن</a>
+        
+        <a href="debts.html" class="nav-link admin-only" id="lnk-debts">👥 قەرز</a>
+        <a href="stock.html" class="nav-link admin-only" id="lnk-stock">📦 کۆگەهـ</a>
+        <a href="report.html" class="nav-link admin-only" id="lnk-report">📊 ڕاپۆرت</a>
+    </div>
+    <div class="nav-controls">
+        <div class="lang-switch">
+            <button class="l-btn active" id="b-ku" onclick="changeLang('ku')">KU</button>
+            <button class="l-btn" id="b-ar" onclick="changeLang('ar')">AR</button>
+            <button class="l-btn" id="b-en" onclick="changeLang('en')">EN</button>
+        </div>
+        <button class="btn-logout" onclick="logout()" id="btn-exit">🚪 چوونە دەرڤە</button>
+    </div>
+</nav>
+
+<div class="pos-container">
+    <div class="items-section"><div class="grid" id="products-grid"></div></div>
+
+    <div class="cart-section">
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
+            <b id="txt-cart">سەبەتە</b>
+            <input type="text" id="barcode-scan" style="flex:1; padding:5px; border-radius:5px; border:1px solid #ddd;" placeholder="سکان...">
+        </div>
+        <div id="cart-list" style="flex-grow:1; overflow-y:auto;"></div>
+        
+        <div class="total-box">
+            <span id="txt-total">کۆم:</span>
+            <span id="total-price">0</span>
+        </div>
+
+        <button class="btn-pay" onclick="checkout('cash')" id="btn-cash">💵 فرۆشتن و چاپکرن</button>
+        
+        <div style="background:#f8fafc; padding:10px; border-radius:10px; margin-bottom:5px;">
+            <select id="debt-customer-select" style="width:100%; padding:8px; margin-bottom:8px; border-radius:5px;"></select>
+            <button onclick="checkout('debt')" id="btn-debt" style="width:100%; padding:8px; border:1px solid var(--danger); color:var(--danger); background:none; font-weight:bold; cursor:pointer; border-radius:8px;">💸 فرۆشتن ب قەرز</button>
+        </div>
+
+<button id="btn-wa-send" onclick="sendToWhatsApp()" style="display:none; width:100%; padding:10px; background:var(--whatsapp); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:5px;">
+    📲 ناردنا وەسڵێ بۆ واتس ئاپ
+</button>
+
+        <a href="https://api.whatsapp.com/send?phone=9647515323621&text=سڵاو، پێدڤی ب پشتگیریێ هەیە د سیستەمێ FOTER دا" 
+   class="whatsapp-link" 
+   target="_blank">
+   <span id="txt-wa">پشتگیرییا واتس ئاپ</span> 📱
+</a>
+    </div>
+</div>
+
+<div id="receipt-print"></div>
+
+<script>
+    const SB_URL = "https://yabwsyxffjsvkcxstevv.supabase.co";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhYndzeXhmZmpzdmtjeHN0ZXZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMjcwODUsImV4cCI6MjA4MTkwMzA4NX0.p3s-m775YzbUYWH9-6rV4gWhonwHCyoEMSB0CpkfRJ4";
+    
+    let cart = [];
+    let allProducts = [];
+
+    const langData = {
+        ku: { dir: "rtl", sale: "🛒 فرۆشتن", debts: "👥 قەرز", stock: "📦 کۆگەهـ", report: "📊 ڕاپۆرت", exit: "🚪 چوونە دەرڤە", cart: "سەبەتە", total: "کۆم:", cash: "💵 فرۆشتن و چاپکرن", debt: "💸 فرۆشتن ب قەرز", cust: "-- کڕیار --", wa: "پشتگیرییا واتس ئاپ" },
+        ar: { dir: "rtl", sale: "🛒 المبيعات", debts: "👥 الديون", stock: "📦 المخزن", report: "📊 التقارير", exit: "🚪 خروج", cart: "السلة", total: "المجموع:", cash: "💵 بيع وطباعة", debt: "💸 بيع بالدين", cust: "-- اختر الزبون --", wa: "دعم واتساب" },
+        en: { dir: "ltr", sale: "🛒 Sales", debts: "👥 Debts", stock: "📦 Stock", report: "📊 Reports", exit: "🚪 Logout", cart: "Cart", total: "Total:", cash: "💵 Sell & Print", debt: "💸 Credit Sale", cust: "-- Select Customer --", wa: "WhatsApp Support" }
+    };
+
+    // پشکنینا دەسەڵاتان (Permissions)
+    function checkPermissions() {
+        const role = localStorage.getItem('userRole');
+        const adminElements = document.querySelectorAll('.admin-only');
+
+        if (role === 'admin') {
+            adminElements.forEach(el => el.style.display = 'block');
+        } else {
+            adminElements.forEach(el => el.style.display = 'none');
+        }
+    }
+
+    function changeLang(lang) {
+        const l = langData[lang];
+        document.getElementById('main-html').dir = l.dir;
+        document.getElementById('lnk-sale').innerText = l.sale;
+        document.getElementById('lnk-debts').innerText = l.debts;
+        document.getElementById('lnk-stock').innerText = l.stock;
+        document.getElementById('lnk-report').innerText = l.report;
+        document.getElementById('btn-exit').innerText = l.exit;
+        document.getElementById('txt-cart').innerText = l.cart;
+        document.getElementById('txt-total').innerText = l.total;
+        document.getElementById('btn-cash').innerText = l.cash;
+        document.getElementById('btn-debt').innerText = l.debt;
+        document.getElementById('txt-wa').innerText = l.wa;
+        document.querySelectorAll('.l-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`b-${lang}`).classList.add('active');
+        localStorage.setItem('foter-lang', lang);
+        renderProducts(allProducts);
+        checkPermissions(); // دگەل گوهۆڕینا زمانی ژی پشکنینێ دکەت
+    }
+
+    async function loadData() {
+        const resP = await fetch(`${SB_URL}/rest/v1/products?select=*`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
+        allProducts = await resP.json();
+        renderProducts(allProducts);
+
+        const resC = await fetch(`${SB_URL}/rest/v1/debts?select=id,customer_name`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
+        const customers = await resC.json();
+        const select = document.getElementById('debt-customer-select');
+        select.innerHTML = `<option value="">${langData[localStorage.getItem('foter-lang') || 'ku'].cust}</option>`;
+        customers.forEach(c => { select.innerHTML += `<option value="${c.id}">${c.customer_name}</option>`; });
+        
+        changeLang(localStorage.getItem('foter-lang') || 'ku');
+        checkPermissions();
+    }
+
+    function renderProducts(data) {
+        document.getElementById('products-grid').innerHTML = data.map(p => {
+            const isOut = p.stock <= 0;
+            const isLow = p.stock > 0 && p.stock <= 5;
+            return `<div class="product-card ${isOut ? 'out-of-stock' : (isLow ? 'low-stock' : '')}" onclick="${isOut ? "alert('نەمایە!')" : `addToCart(${p.id})`}">
+                <h4>${p.name}</h4><p>${Number(p.price).toLocaleString()} د.ع</p>
+                <span style="font-size:10px;">📦 ماى: ${p.stock}</span>
+            </div>`;
+        }).join('');
+    }
+
+    function addToCart(id) {
+        const p = allProducts.find(x => x.id === id);
+        const item = cart.find(i => i.id === id);
+        if (p.stock > (item ? item.qty : 0)) {
+            if(item) item.qty++; else cart.push({...p, qty: 1});
+            updateCart();
+        } else alert("تەنێ ئەڤەندە ماینە!");
+    }
+
+    function updateCart() {
+    let total = 0;
+    document.getElementById('cart-list').innerHTML = cart.map((i, index) => {
+        total += i.price * i.qty;
+        return `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #eee;">
+                <div style="flex:1;">
+                    <span style="font-weight:bold;">${i.name}</span>
+                    <div style="font-size:12px; color:#666;">
+                        ${i.qty} x ${Number(i.price).toLocaleString()}
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <b style="color:var(--primary);">${(i.price * i.qty).toLocaleString()}</b>
+                    <button onclick="removeFromCart(${index})" style="background:none; border:none; color:#e71d36; cursor:pointer; font-size:18px; font-weight:bold;">
+                        ✕
+                    </button>
+                </div>
+            </div>`;
+    }).join('');
+    document.getElementById('total-price').innerText = total.toLocaleString();
+}
+
+function removeFromCart(index) {
+    // ئەگەر عدد زێدەتر بی ژ ئێک، ئێکێ کێم بکە
+    if (cart[index].qty > 1) {
+        cart[index].qty--;
+    } else {
+        // ئەگەر تەنێ ئێک مابیت، ب تەمامی ژ سەبەتێ لایببە
+        cart.splice(index, 1);
+    }
+    updateCart(); // سەبەتێ نوو بکەڤە
+}
+
+    function printReceipt() {
+        const total = document.getElementById('total-price').innerText;
+        const itemsHtml = cart.map(i => `<tr><td>${i.name}</td><td>${i.qty}</td><td>${(i.price*i.qty).toLocaleString()}</td></tr>`).join('');
+        document.getElementById('receipt-print').innerHTML = `
+            <div style="text-align:center; border-bottom:1px solid #000; padding:10px;"><h2>FOTER SHOP</h2><p>وەسڵا فرۆشتنێ</p></div>
+            <table style="width:100%; border-collapse:collapse; margin-top:10px;"><thead><tr><th align="right">بابەت</th><th>عدد</th><th>بڕ</th></tr></thead><tbody>${itemsHtml}</tbody></table>
+            <div style="border-top:1px solid #000; margin-top:10px; text-align:center;"><h3>کۆم: ${total} د.ع</h3><p>سوپاس بۆ سەرەدانا وە</p></div>`;
+        window.print();
+    }
+
+    async function checkout(type) {
+        if(cart.length === 0) return;
+        const customerId = document.getElementById('debt-customer-select').value;
+        if(type === 'debt' && !customerId) return alert("کڕیارەکی هەلبژێرە!");
+
+        const totalAmt = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+        const res = await fetch(`${SB_URL}/rest/v1/sales`, {
+            method: 'POST',
+            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ total_amount: totalAmt, items: cart.map(i=>`${i.name}(${i.qty})`).join(','), sale_date: new Date() })
+        });
+
+        if(res.ok) {
+            for (let item of cart) {
+                await fetch(`${SB_URL}/rest/v1/products?id=eq.${item.id}`, {
+                    method: 'PATCH',
+                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stock: item.stock - item.qty })
+                });
+            }
+            if(type === 'debt') {
+                const resC = await fetch(`${SB_URL}/rest/v1/debts?id=eq.${customerId}`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
+                const cData = await resC.json();
+                if(cData.length > 0) {
+                    await fetch(`${SB_URL}/rest/v1/debts?id=eq.${customerId}`, {
+                        method: 'PATCH',
+                        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ total_debt: Number(cData[0].total_debt || 0) + totalAmt })
+                    });
+                }
+            }
+            printReceipt();
+            cart = []; updateCart(); loadData();
+        }
+    }
+
+    function logout() {
+        localStorage.clear();
+        window.location.href = 'index.html';
+    }
+
+    document.getElementById('barcode-scan').addEventListener('keypress', (e) => {
+        if(e.key === 'Enter') {
+            const p = allProducts.find(x => x.barcode === e.target.value);
+            if(p) { addToCart(p.id); e.target.value = ''; }
+        }
+    });
+
+    loadData();
+
+    let lastOrder = null; // بۆ پاشەکەفتکرنا دوماهیک وەسڵ
+
+async function checkout(type) {
+    if(cart.length === 0) return;
+    // ... کۆدێ تە یێ جاران یێ checkout لێرە دایبنە ...
+    
+    // ل دوماهیا فەنکشنا checkout پشتی سەرکەفتنێ:
+    lastOrder = {
+        items: [...cart],
+        total: document.getElementById('total-price').innerText
+    };
+    
+    document.getElementById('btn-wa-send').style.display = 'block'; // نیشاندانا دوکمەیا واتس ئاپ
+    printReceipt();
+    // cart = []; updateCart(); // ئەڤانە ل دوماهیێ بکە دا کو داتایێ وەسڵێ نەچیت
+}
+
+function sendToWhatsApp() {
+    if(!lastOrder) return;
+
+    let msg = "📄 *وەسڵا فرۆشتنێ - FOTER POS*\n";
+    msg += "--------------------------\n";
+    
+    lastOrder.items.forEach(i => {
+        msg += `🔹 ${i.name} (x${i.qty}) = ${(i.price * i.qty).toLocaleString()} د.ع\n`;
+    });
+
+    msg += "--------------------------\n";
+    msg += `💰 *کۆم: ${lastOrder.total} د.ع*\n`;
+    msg += "🙏 سوپاس بۆ سەرەدانا وە";
+
+    const encodedMsg = encodeURIComponent(msg);
+    const waUrl = `https://wa.me/?text=${encodedMsg}`;
+    
+    window.open(waUrl, '_blank');
+    
+    // پشتی ناردنێ سەبەتێ پاقژ بکە
+    document.getElementById('btn-wa-send').style.display = 'none';
+    cart = []; 
+    updateCart();
+    loadData();
+}
+
+</script>
+</body>
+</html>

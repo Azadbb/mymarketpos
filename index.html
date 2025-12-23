@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - FOTER POS</title>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-hover: #374ccb;
+            --bg: #f4f7fe;
+            --dark: #011627;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-image: radial-gradient(circle at 20% 20%, rgba(67, 97, 238, 0.05) 0%, transparent 40%),
+                              radial-gradient(circle at 80% 80%, rgba(67, 97, 238, 0.05) 0%, transparent 40%);
+        }
+
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.8);
+        }
+
+        .logo-area {
+            margin-bottom: 30px;
+        }
+
+        .logo-area h1 {
+            color: var(--primary);
+            font-size: 32px;
+            margin: 0;
+            font-weight: 900;
+            letter-spacing: -1px;
+        }
+
+        .logo-area p {
+            color: #64748b;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: right;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #475569;
+            font-size: 14px;
+            padding-right: 5px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            outline: none;
+            font-size: 16px;
+            transition: 0.3s;
+            text-align: center;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.1);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 18px;
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+
+        .btn-login:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .error-box {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: none;
+            border: 1px solid #fecaca;
+        }
+
+        .footer-text {
+            margin-top: 25px;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-container">
+    <div class="logo-area">
+        <h1>FOTER POS</h1>
+        <p id="txt-welcome">بخێرهاتی بۆ سیستەمێ فرۆشتنێ</p>
+    </div>
+
+    <div id="error-msg" class="error-box">ناڤ یان پاسوۆرد یێ خەلەتە!</div>
+
+    <div class="form-group">
+        <label>ناڤێ بەکارهێنەری</label>
+        <input type="text" id="username" placeholder="Username" autocomplete="off">
+    </div>
+
+    <div class="form-group">
+        <label>پاسوۆرد</label>
+        <input type="password" id="password" placeholder="••••••••">
+    </div>
+
+    <button class="btn-login" onclick="handleLogin()">چوونەژوورێ</button>
+
+    <div class="footer-text">
+        &copy; 2025 FOTER POS System. All rights reserved.
+    </div>
+</div>
+
+<script>
+    // زانیاریێن Supabase
+    const SB_URL = "https://yabwsyxffjsvkcxstevv.supabase.co";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhYndzeXhmZmpzdmtjeHN0ZXZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMjcwODUsImV4cCI6MjA4MTkwMzA4NX0.p3s-m775YzbUYWH9-6rV4gWhonwHCyoEMSB0CpkfRJ4";
+
+    // دەما Enter دهێتە داگرتن
+    document.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            handleLogin();
+        }
+    });
+
+    async function handleLogin() {
+        const userVal = document.getElementById('username').value.trim();
+        const passVal = document.getElementById('password').value.trim();
+        const errorDiv = document.getElementById('error-msg');
+
+        if (!userVal || !passVal) {
+            showError("تکایە هەمی خانان پڕ بکە!");
+            return;
+        }
+
+        try {
+            // گەریان ل ناڤ خشتێ بەکارهێنەران
+            const response = await fetch(`${SB_URL}/rest/v1/users?username=eq.${userVal}&password=eq.${passVal}`, {
+                method: 'GET',
+                headers: {
+                    'apikey': SB_KEY,
+                    'Authorization': `Bearer ${SB_KEY}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const users = await response.json();
+
+            if (users.length > 0) {
+                // سەرکەفتن: پاشکەفتکرنا زانیاریان د برۆوسەری دا
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('username', users[0].username);
+                localStorage.setItem('userRole', users[0].role);
+                localStorage.setItem('fullName', users[0].full_name);
+
+                // چوون بۆ لاپەڕێ فرۆشتنێ
+                window.location.href = 'pos.html';
+            } else {
+                showError("ناڤ یان پاسوۆرد یێ خەلەتە!");
+            }
+        } catch (error) {
+            console.error("Login Error:", error);
+            showError("کێشەک د پەیوەندیێ دا هەیە!");
+        }
+    }
+
+    function showError(msg) {
+        const errorDiv = document.getElementById('error-msg');
+        errorDiv.innerText = msg;
+        errorDiv.style.display = 'block';
+        
+        // لەرزینا باکسێ دەما خەلەتیەک چێدبیت
+        const container = document.querySelector('.login-container');
+        container.style.animation = 'shake 0.2s ease-in-out 0s 2';
+        setTimeout(() => container.style.animation = '', 400);
+    }
+</script>
+
+<style>
+    @keyframes shake {
+        0% { transform: translateX(0); }
+        25% { transform: translateX(5px); }
+        50% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+        100% { transform: translateX(0); }
+    }
+</style>
+
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl" id="main-html">
+<head>
+
+<script>
+    if (localStorage.getItem("userRole") !== "admin") {
+        alert("تەنێ ئەدمین دشێت ڤێ لاپەڕێ ڤەکەت!");
+        window.location.href = "pos.html"; // وی دزەبیتەڤە بۆ لاپەڕێ فرۆشتنێ
+    }
+</script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مەخزەن و مەزاختن - فۆتەر POS</title>
+    <style>
+        :root {
+            --primary: #4361ee; --success: #2ec4b6; --danger: #e71d36;
+            --dark: #011627; --bg: #f4f7fe; --shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; transition: 0.2s; }
+        body { margin: 0; background: var(--bg); color: var(--dark); padding-bottom: 50px; }
+
+        /* Navbar */
+        .top-nav { display: flex; justify-content: space-between; align-items: center; padding: 12px 25px; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
+        .nav-links { display: flex; gap: 10px; }
+        .nav-link { padding: 8px 15px; border-radius: 10px; text-decoration: none; color: #64748b; font-weight: 600; font-size: 13px; }
+        .active-nav { background: var(--primary); color: white !important; }
+
+        /* Language Controls */
+        .lang-control { display: flex; gap: 5px; background: #f1f5f9; padding: 4px; border-radius: 10px; }
+        .lang-btn { border: none; background: none; padding: 5px 10px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; color: #64748b; }
+        .lang-btn.active { background: white; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
+        .container { max-width: 1100px; margin: 30px auto; display: grid; grid-template-columns: 1fr 1fr; gap: 25px; padding: 0 20px; }
+
+        /* Section Cards */
+        .section-card { background: white; border-radius: 24px; padding: 25px; box-shadow: var(--shadow); }
+        h2 { margin: 0 0 20px; font-size: 18px; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; }
+
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 13px; color: #475569; }
+        input { width: 100%; padding: 12px; border: 1.5px solid #e2e8f0; border-radius: 12px; outline: none; }
+        input:focus { border-color: var(--primary); }
+
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
+        .btn-add { background: var(--primary); color: white; }
+        .btn-exp { background: var(--danger); color: white; }
+
+        /* Table */
+        .table-area { grid-column: span 2; background: white; border-radius: 24px; padding: 25px; box-shadow: var(--shadow); }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: inherit; background: #f8fafc; padding: 15px; font-size: 13px; color: #64748b; }
+        td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; }
+
+        .qty-wrapper { display: flex; align-items: center; gap: 5px; background: #f8fafc; padding: 5px; border-radius: 12px; border: 1px solid #e2e8f0; width: fit-content; }
+        .qty-input { width: 60px; text-align: center; border: 1px solid #cbd5e1; border-radius: 8px; padding: 5px; font-weight: bold; }
+        .btn-small { width: 28px; height: 28px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<nav class="top-nav">
+    <div style="font-weight: 900; font-size: 20px; color: var(--primary);">FOTER POS</div>
+    
+    <div class="lang-control">
+        <button class="lang-btn active" id="btn-ku" onclick="setLang('ku')">KU</button>
+        <button class="lang-btn" id="btn-ar" onclick="setLang('ar')">AR</button>
+        <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+    </div>
+
+    <div class="nav-links">
+        <a href="pos.html" class="nav-link" id="txt-pos">🛒 فرۆشتن</a>
+        <a href="stock.html" class="nav-link active-nav" id="txt-stock">📦 مەخزەن</a>
+        <a href="report.html" class="nav-link" id="txt-report">📊 ڕاپۆرت</a>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="section-card">
+        <h2 id="txt-add-title">➕ زێدەکرنا کالایێ نوی</h2>
+        <div class="form-group"><label id="lbl-barcode">بارکۆد:</label><input type="text" id="p-barcode"></div>
+        <div class="form-group"><label id="lbl-name">ناڤێ کالای:</label><input type="text" id="p-name"></div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="form-group"><label id="lbl-cost">بهایێ کڕینێ:</label><input type="number" id="p-cost" value="0"></div>
+            <div class="form-group"><label id="lbl-price">بهایێ فرۆشتنێ:</label><input type="number" id="p-price" value="0"></div>
+        </div>
+        <div class="form-group"><label id="lbl-qty">عەدد (العدد):</label><input type="number" id="p-qty" value="0"></div>
+        <button class="btn btn-add" onclick="addProduct()" id="txt-btn-save">تۆمارکرن</button>
+    </div>
+
+    <div class="section-card">
+        <h2 id="txt-exp-title">💸 مەزاختنێن نوی</h2>
+        <div class="form-group"><label id="lbl-exp-name">مەبەست:</label><input type="text" id="e-title"></div>
+        <div class="form-group"><label id="lbl-exp-amt">کۆژمە:</label><input type="number" id="e-amount" value="0"></div>
+        <button class="btn btn-exp" onclick="addExpense()" id="txt-btn-exp">تۆمارکرن</button>
+    </div>
+
+    <div class="table-area">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 style="border:none; margin:0;" id="txt-list-title">📦 لیستا گشتی یا مەخزەنی</h2>
+            <input type="text" id="search-box" oninput="filterTable()" placeholder="..." style="width:200px; padding:8px; border-radius:10px; border:1px solid #ddd;">
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th id="th-barcode">بارکۆد</th>
+                    <th id="th-name">ناڤ</th>
+                    <th id="th-price">بها</th>
+                    <th id="th-qty">عەدد</th>
+                    <th id="th-action">کردار</th>
+                </tr>
+            </thead>
+            <tbody id="product-table"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+
+// پشکنینا چوونەژوورێ و دەسهەڵاتێ (Role)
+const userRole = localStorage.getItem('userRole');
+const isLoggedIn = localStorage.getItem('isLoggedIn');
+
+if (isLoggedIn !== 'true') {
+    window.location.href = 'index.html'; // ئەگەر لۆگین نەبوو، بچیتە لاپەڕێ چوونەژوورێ
+} else if (userRole !== 'admin' && userRole !== 'owner') {
+    alert("تە دەسهەڵات نینە ڤی لاپەڕەی ببینی!");
+    window.location.href = 'pos.html'; // ئەگەر کاشێر بوو، ب زۆرەکی ب زڤڕینە لاپەڕێ فرۆشتنێ
+}
+
+    const SB_URL = "https://yabwsyxffjsvkcxstevv.supabase.co";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhYndzeXhmZmpzdmtjeHN0ZXZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMjcwODUsImV4cCI6MjA4MTkwMzA4NX0.p3s-m775YzbUYWH9-6rV4gWhonwHCyoEMSB0CpkfRJ4";
+    let allProducts = [];
+
+    const langData = {
+        ku: { 
+            dir: "rtl", pos: "🛒 فرۆشتن", stock: "📦 مەخزەن", report: "📊 ڕاپۆرت",
+            addTitle: "➕ زێدەکرنا کالایێ نوی", barcode: "بارکۆد:", name: "ناڤێ کالای:", cost: "بهایێ کڕینێ:", price: "بهایێ فرۆشتنێ:", qty: "عەدد (العدد):", btnSave: "تۆمارکرن",
+            expTitle: "💸 مەزاختنێن نوی", expName: "مەبەست:", expAmt: "کۆژمە:", listTitle: "📦 لیستا گشتی", search: "ل ناڤی بگەڕێ...",
+            thCode: "بارکۆد", thName: "ناڤ", thPrice: "بها", thQty: "عەدد", thAct: "کردار", del: "لادان"
+        },
+        ar: { 
+            dir: "rtl", pos: "🛒 المبيعات", stock: "📦 المخزن", report: "📊 التقارير",
+            addTitle: "➕ إضافة مادة جديدة", barcode: "الباركود:", name: "اسم المادة:", cost: "سعر الشراء:", price: "سعر البيع:", qty: "العدد:", btnSave: "حفظ",
+            expTitle: "💸 مصاريف جديدة", expName: "السبب:", expAmt: "المبلغ:", listTitle: "📦 القائمة العامة", search: "بحث عن اسم...",
+            thCode: "باركود", thName: "الاسم", thPrice: "السعر", thQty: "العدد", thAct: "إجراء", del: "حذف"
+        },
+        en: { 
+            dir: "ltr", pos: "🛒 Sales", stock: "📦 Stock", report: "📊 Reports",
+            addTitle: "➕ Add New Item", barcode: "Barcode:", name: "Item Name:", cost: "Cost Price:", price: "Sale Price:", qty: "Quantity:", btnSave: "Save",
+            expTitle: "💸 New Expenses", expName: "Reason:", expAmt: "Amount:", listTitle: "📦 Stock List", search: "Search name...",
+            thCode: "Code", thName: "Name", thPrice: "Price", thQty: "Qty", thAct: "Action", del: "Delete"
+        }
+    };
+
+    function setLang(lang) {
+        const l = langData[lang];
+        document.getElementById('main-html').dir = l.dir;
+        document.getElementById('txt-pos').innerText = l.pos;
+        document.getElementById('txt-stock').innerText = l.stock;
+        document.getElementById('txt-report').innerText = l.report;
+        document.getElementById('txt-add-title').innerText = l.addTitle;
+        document.getElementById('lbl-barcode').innerText = l.barcode;
+        document.getElementById('lbl-name').innerText = l.name;
+        document.getElementById('lbl-cost').innerText = l.cost;
+        document.getElementById('lbl-price').innerText = l.price;
+        document.getElementById('lbl-qty').innerText = l.qty;
+        document.getElementById('txt-btn-save').innerText = l.btnSave;
+        document.getElementById('txt-exp-title').innerText = l.expTitle;
+        document.getElementById('lbl-exp-name').innerText = l.expName;
+        document.getElementById('lbl-exp-amt').innerText = l.expAmt;
+        document.getElementById('txt-btn-exp').innerText = l.btnSave;
+        document.getElementById('txt-list-title').innerText = l.listTitle;
+        document.getElementById('search-box').placeholder = l.search;
+        document.getElementById('th-barcode').innerText = l.thCode;
+        document.getElementById('th-name').innerText = l.thName;
+        document.getElementById('th-price').innerText = l.thPrice;
+        document.getElementById('th-qty').innerText = l.thQty;
+        document.getElementById('th-action').innerText = l.thAct;
+
+        document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`btn-${lang}`).classList.add('active');
+        localStorage.setItem('foter-lang', lang);
+        renderTable(allProducts);
+    }
+
+    async function loadStock() {
+        const res = await fetch(`${SB_URL}/rest/v1/products?select=*&order=name.asc`, {
+            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+        });
+        allProducts = await res.json();
+        const savedLang = localStorage.getItem('foter-lang') || 'ku';
+        setLang(savedLang);
+    }
+
+    function renderTable(data) {
+        const lang = localStorage.getItem('foter-lang') || 'ku';
+        document.getElementById('product-table').innerHTML = data.map(p => `
+            <tr>
+                <td>${p.barcode || '---'}</td>
+                <td><b>${p.name}</b></td>
+                <td>${Number(p.price).toLocaleString()}</td>
+                <td>
+                    <div class="qty-wrapper">
+                        <button class="btn-small" onclick="updateQty(${p.id}, -1)">-</button>
+                        <input type="number" class="qty-input" id="input-${p.id}" value="${p.stock || 0}" onchange="manualUpdate(${p.id}, this.value)">
+                        <button class="btn-small" onclick="updateQty(${p.id}, 1)">+</button>
+                    </div>
+                </td>
+                <td><button onclick="deleteProd(${p.id})" style="color:red; border:none; background:none; cursor:pointer;">${langData[lang].del}</button></td>
+            </tr>
+        `).join('');
+    }
+
+    function filterTable() {
+        const txt = document.getElementById('search-box').value.toLowerCase();
+        const filtered = allProducts.filter(p => p.name.toLowerCase().includes(txt));
+        renderTable(filtered);
+    }
+
+    async function addProduct() {
+        const barcode = document.getElementById('p-barcode').value;
+        const name = document.getElementById('p-name').value;
+        const cost = document.getElementById('p-cost').value;
+        const price = document.getElementById('p-price').value;
+        const qty = document.getElementById('p-qty').value;
+        if(!name || !price) return;
+
+        const res = await fetch(`${SB_URL}/rest/v1/products`, {
+            method: 'POST',
+            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ barcode, name, cost_price: cost, price: price, stock: qty })
+        });
+        if(res.ok) location.reload();
+    }
+
+    async function updateQty(id, change) {
+        const input = document.getElementById(`input-${id}`);
+        let newQty = parseInt(input.value) + change;
+        if(newQty < 0) newQty = 0;
+        input.value = newQty;
+        await sendUpdate(id, newQty);
+    }
+
+    async function manualUpdate(id, value) {
+        let newQty = parseInt(value);
+        if(isNaN(newQty) || newQty < 0) newQty = 0;
+        await sendUpdate(id, newQty);
+    }
+
+    async function sendUpdate(id, qty) {
+        await fetch(`${SB_URL}/rest/v1/products?id=eq.${id}`, {
+            method: 'PATCH',
+            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stock: qty })
+        });
+    }
+
+    async function addExpense() {
+        const title = document.getElementById('e-title').value;
+        const amount = document.getElementById('e-amount').value;
+        if(!title || !amount) return;
+        await fetch(`${SB_URL}/rest/v1/expenses`, {
+            method: 'POST',
+            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, amount, date: new Date().toISOString() })
+        });
+        location.reload();
+    }
+
+    async function deleteProd(id) {
+        if(confirm("?")) {
+            await fetch(`${SB_URL}/rest/v1/products?id=eq.${id}`, {
+                method: 'DELETE',
+                headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+            });
+            loadStock();
+        }
+    }
+
+    loadStock();
+</script>
+</body>
+</html>

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl" id="main-html">
+<head>
+
+<script>
+    if (localStorage.getItem("userRole") !== "admin") {
+        alert("تەنێ ئەدمین دشێت ڤێ لاپەڕێ ڤەکەت!");
+        window.location.href = "pos.html"; // وی دزەبیتەڤە بۆ لاپەڕێ فرۆشتنێ
+    }
+</script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ڕاپۆرت - فۆتەر POS</title>
+    <style>
+        :root {
+            --primary: #4361ee; --success: #2ec4b6; --danger: #e71d36;
+            --dark: #011627; --bg: #f4f7fe; --shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; transition: 0.2s; }
+        body { margin: 0; background: var(--bg); color: var(--dark); padding-bottom: 50px; }
+
+        /* Navbar */
+        .top-nav { display: flex; justify-content: space-between; align-items: center; padding: 12px 25px; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
+        .nav-links { display: flex; gap: 10px; }
+        .nav-link { padding: 8px 15px; border-radius: 10px; text-decoration: none; color: #64748b; font-weight: 600; font-size: 13px; }
+        .active-nav { background: var(--primary); color: white !important; }
+
+        /* Language Controls */
+        .lang-control { display: flex; gap: 5px; background: #f1f5f9; padding: 4px; border-radius: 10px; }
+        .lang-btn { border: none; background: none; padding: 5px 10px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; color: #64748b; }
+        .lang-btn.active { background: white; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
+        .container { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
+
+        /* Filter Bar */
+        .filter-bar { background: white; padding: 20px; border-radius: 20px; box-shadow: var(--shadow); margin-bottom: 25px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .filter-bar input { padding: 10px; border: 1.5px solid #e2e8f0; border-radius: 10px; outline: none; }
+        .btn-filter { background: var(--primary); color: white; border: none; padding: 10px 25px; border-radius: 10px; cursor: pointer; font-weight: bold; }
+
+        /* Stats Cards */
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 25px; border-radius: 24px; box-shadow: var(--shadow); text-align: center; }
+        .stat-card h3 { margin: 0; font-size: 14px; color: #64748b; }
+        .stat-card p { margin: 10px 0 0; font-size: 22px; font-weight: 800; }
+
+        /* Sections */
+        .report-sections { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+        .section-card { background: white; border-radius: 24px; padding: 25px; box-shadow: var(--shadow); }
+        h2 { margin: 0 0 15px; font-size: 18px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: inherit; background: #f8fafc; padding: 12px; font-size: 13px; color: #64748b; }
+        td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        .btn-delete { background: var(--danger); color: white; border: none; padding: 5px 10px; border-radius: 8px; cursor: pointer; font-size: 11px; }
+    </style>
+</head>
+<body>
+
+<nav class="top-nav">
+    <div style="font-weight: 900; font-size: 20px; color: var(--primary);">FOTER POS</div>
+    
+    <div class="lang-control">
+        <button class="lang-btn" id="btn-ku" onclick="setLang('ku')">KU</button>
+        <button class="lang-btn" id="btn-ar" onclick="setLang('ar')">AR</button>
+        <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+    </div>
+
+    <div class="nav-links">
+        <a href="pos.html" class="nav-link" id="txt-pos">🛒 فرۆشتن</a>
+        <a href="stock.html" class="nav-link" id="txt-stock">📦 مەخزەن</a>
+        <a href="report.html" class="nav-link active-nav" id="txt-report">📊 ڕاپۆرت</a>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="filter-bar">
+        <span id="txt-from">📅 ژ ڕێکەفتا:</span>
+        <input type="date" id="date-from">
+        <span id="txt-to">بۆ ڕێکەفتا:</span>
+        <input type="date" id="date-to">
+        <button class="btn-filter" onclick="loadReports()" id="txt-btn-filter">🔎 فلتەر بکە</button>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card"><h3 id="txt-stat-sales">کۆمێ فرۆشتنێ</h3><p id="total-sales">0</p></div>
+        <div class="stat-card"><h3 id="txt-stat-exp">کۆمێ مەزاختنێ</h3><p id="total-expenses" style="color: var(--danger);">0</p></div>
+        <div class="stat-card"><h3 id="txt-stat-profit">قازانجێ خالص</h3><p id="net-profit" style="color: var(--success);">0</p></div>
+    </div>
+
+    <div class="report-sections">
+        <div class="section-card">
+            <h2 id="txt-list-sales">📦 لیستا فرۆشتنان</h2>
+            <table>
+                <thead><tr><th id="th-time">کات</th><th id="th-total">کۆم</th><th id="th-profit">قازانج</th></tr></thead>
+                <tbody id="sales-table"></tbody>
+            </table>
+        </div>
+
+        <div class="section-card">
+            <h2 id="txt-list-exp">💸 لیستا مەزاختنان</h2>
+            <table>
+                <thead><tr><th id="th-reason">مەبەست</th><th id="th-amount">کۆژمە</th><th id="th-act">کردار</th></tr></thead>
+                <tbody id="expenses-table"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+
+// پشکنینا چوونەژوورێ و دەسهەڵاتێ (Role)
+const userRole = localStorage.getItem('userRole');
+const isLoggedIn = localStorage.getItem('isLoggedIn');
+
+if (isLoggedIn !== 'true') {
+    window.location.href = 'index.html'; // ئەگەر لۆگین نەبوو، بچیتە لاپەڕێ چوونەژوورێ
+} else if (userRole !== 'admin' && userRole !== 'owner') {
+    alert("تە دەسهەڵات نینە ڤی لاپەڕەی ببینی!");
+    window.location.href = 'pos.html'; // ئەگەر کاشێر بوو، ب زۆرەکی ب زڤڕینە لاپەڕێ فرۆشتنێ
+}
+
+    const SB_URL = "https://yabwsyxffjsvkcxstevv.supabase.co";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhYndzeXhmZmpzdmtjeHN0ZXZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMjcwODUsImV4cCI6MjA4MTkwMzA4NX0.p3s-m775YzbUYWH9-6rV4gWhonwHCyoEMSB0CpkfRJ4";
+
+    const langData = {
+        ku: {
+            dir: "rtl", pos: "🛒 فرۆشتن", stock: "📦 مەخزەن", report: "📊 ڕاپۆرت",
+            from: "📅 ژ ڕێکەفتا:", to: "بۆ ڕێکەفتا:", filterBtn: "🔎 فلتەر بکە",
+            statSales: "کۆمێ فرۆشتنێ", statExp: "کۆمێ مەزاختنێ", statProfit: "قازانجێ خالص",
+            listSales: "📦 لیستا فرۆشتنان", listExp: "💸 لیستا مەزاختنان",
+            thTime: "کات", thTotal: "کۆم", thProfit: "قازانج", thReason: "مەبەست", thAmt: "کۆژمە", thAct: "کردار", del: "ژێبرن"
+        },
+        ar: {
+            dir: "rtl", pos: "🛒 المبيعات", stock: "📦 المخزن", report: "📊 التقارير",
+            from: "📅 من تاريخ:", to: "إلى تاريخ:", filterBtn: "🔎 تصفية",
+            statSales: "إجمالي المبيعات", statExp: "إجمالي المصاريف", statProfit: "صافي الربح",
+            listSales: "📦 قائمة المبيعات", listExp: "💸 قائمة المصاريف",
+            thTime: "الوقت", thTotal: "المجموع", thProfit: "الربح", thReason: "السبب", thAmt: "المبلغ", thAct: "إجراء", del: "حذف"
+        },
+        en: {
+            dir: "ltr", pos: "🛒 Sales", stock: "📦 Stock", report: "📊 Reports",
+            from: "📅 From:", to: "To:", filterBtn: "🔎 Filter",
+            statSales: "Total Sales", statExp: "Total Expenses", statProfit: "Net Profit",
+            listSales: "📦 Sales List", listExp: "💸 Expenses List",
+            thTime: "Time", thTotal: "Total", thProfit: "Profit", thReason: "Reason", thAmt: "Amount", thAct: "Action", del: "Delete"
+        }
+    };
+
+    function setLang(lang) {
+        const l = langData[lang];
+        document.getElementById('main-html').dir = l.dir;
+        document.getElementById('txt-pos').innerText = l.pos;
+        document.getElementById('txt-stock').innerText = l.stock;
+        document.getElementById('txt-report').innerText = l.report;
+        document.getElementById('txt-from').innerText = l.from;
+        document.getElementById('txt-to').innerText = l.to;
+        document.getElementById('txt-btn-filter').innerText = l.filterBtn;
+        document.getElementById('txt-stat-sales').innerText = l.statSales;
+        document.getElementById('txt-stat-exp').innerText = l.statExp;
+        document.getElementById('txt-stat-profit').innerText = l.statProfit;
+        document.getElementById('txt-list-sales').innerText = l.listSales;
+        document.getElementById('txt-list-exp').innerText = l.listExp;
+        document.getElementById('th-time').innerText = l.thTime;
+        document.getElementById('th-total').innerText = l.thTotal;
+        document.getElementById('th-profit').innerText = l.thProfit;
+        document.getElementById('th-reason').innerText = l.thReason;
+        document.getElementById('th-amount').innerText = l.thAmt;
+        document.getElementById('th-act').innerText = l.thAct;
+
+        document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`btn-${lang}`).classList.add('active');
+        localStorage.setItem('foter-lang', lang);
+        loadReports();
+    }
+
+    window.onload = () => {
+        const savedLang = localStorage.getItem('foter-lang') || 'ku';
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('date-from').value = today;
+        document.getElementById('date-to').value = today;
+        setLang(savedLang);
+    };
+
+    async function loadReports() {
+        const from = document.getElementById('date-from').value;
+        const to = document.getElementById('date-to').value;
+        const lang = localStorage.getItem('foter-lang') || 'ku';
+
+        let salesQ = `${SB_URL}/rest/v1/sales?select=*&order=sale_date.desc`;
+        let expQ = `${SB_URL}/rest/v1/expenses?select=*&order=date.desc`;
+
+        if (from && to) {
+            const fromISO = new Date(from).toISOString();
+            const toDate = new Date(to); toDate.setHours(23,59,59);
+            const toISO = toDate.toISOString();
+            salesQ += `&sale_date=gte.${fromISO}&sale_date=lte.${toISO}`;
+            expQ += `&date=gte.${fromISO}&date=lte.${toISO}`;
+        }
+
+        const [rS, rE] = await Promise.all([
+            fetch(salesQ, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }),
+            fetch(expQ, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } })
+        ]);
+
+        const sales = await rS.json();
+        const expenses = await rE.json();
+
+        let totalS = 0, totalP = 0, totalE = 0;
+
+        document.getElementById('sales-table').innerHTML = sales.map(s => {
+            totalS += Number(s.total_amount);
+            totalP += Number(s.total_profit);
+            return `<tr><td>${new Date(s.sale_date).toLocaleTimeString()}</td><td>${Number(s.total_amount).toLocaleString()}</td><td style="color:green">${Number(s.total_profit).toLocaleString()}</td></tr>`;
+        }).join('');
+
+        document.getElementById('expenses-table').innerHTML = expenses.map(e => {
+            totalE += Number(e.amount);
+            return `<tr><td>${e.title}</td><td style="color:red">${Number(e.amount).toLocaleString()}</td><td><button class="btn-delete" onclick="deleteExpense(${e.id})">${langData[lang].del}</button></td></tr>`;
+        }).join('');
+
+        document.getElementById('total-sales').innerText = totalS.toLocaleString();
+        document.getElementById('total-expenses').innerText = totalE.toLocaleString();
+        document.getElementById('net-profit').innerText = (totalP - totalE).toLocaleString();
+    }
+
+    async function deleteExpense(id) {
+        if (!confirm("?")) return;
+        await fetch(`${SB_URL}/rest/v1/expenses?id=eq.${id}`, {
+            method: 'DELETE',
+            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+        });
+        loadReports();
+    }
+</script>
+</body>
+</html>

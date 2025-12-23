@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl" id="main-html">
+<head>
+    <meta charset="UTF-8">
+    <title>قەرز - FOTER POS</title>
+    <style>
+        :root { --primary: #4361ee; --bg: #f4f7fe; --shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 25px; box-shadow: var(--shadow); }
+        .form-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { flex: 1; padding: 12px; border: 1.5px solid #ddd; border-radius: 12px; outline: none; }
+        .btn-add { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 12px; cursor: pointer; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; text-align: right; }
+        th { background: #f8fafc; padding: 15px; color: #64748b; }
+        td { padding: 15px; border-bottom: 1px solid #eee; }
+        .debt-amt { color: #e71d36; font-weight: bold; }
+        .nav-back { display: inline-block; margin-bottom: 20px; text-decoration: none; color: var(--primary); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <a href="pos.html" class="nav-back">⬅ زڤڕین بۆ فرۆشتنێ</a>
+    <h2 id="txt-title">👥 سیستەمێ قەرزێن کڕیاران</h2>
+    
+    <div class="form-group">
+        <input type="text" id="cust-name" placeholder="ناڤێ کڕیاری">
+        <input type="text" id="cust-phone" placeholder="ژمارا تەلەفۆنێ">
+        <button class="btn-add" onclick="addCustomer()" id="btn-save">زێدەکرن</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th id="th-name">ناڤێ کڕیاری</th>
+                <th id="th-phone">تەلەفۆن</th>
+                <th id="th-debt">قەرزێ گشتی</th>
+                <th id="th-act">کردار</th>
+            </tr>
+        </thead>
+        <tbody id="debt-table"></tbody>
+    </table>
+</div>
+
+<script>
+    // ل ڤێرە URL و Key یێ خۆ دابنێ
+    const SB_URL = "https://yabwsyxffjsvkcxstevv.supabase.co"; 
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhYndzeXhmZmpzdmtjeHN0ZXZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMjcwODUsImV4cCI6MjA4MTkwMzA4NX0.p3s-m775YzbUYWH9-6rV4gWhonwHCyoEMSB0CpkfRJ4";
+
+    async function loadDebts() {
+        try {
+            const res = await fetch(`${SB_URL}/rest/v1/debts?select=*&order=customer_name.asc`, {
+                headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+            });
+            const data = await res.json();
+            renderTable(data);
+        } catch (err) {
+            console.error("Error loading debts:", err);
+        }
+    }
+
+    function renderTable(data) {
+        document.getElementById('debt-table').innerHTML = data.map(d => `
+            <tr>
+                <td><b>${d.customer_name}</b></td>
+                <td>${d.phone || '---'}</td> 
+                <td class="debt-amt">${Number(d.total_debt || 0).toLocaleString()} د.ع</td>
+                <td>
+                    <button onclick="payDebt(${d.id}, ${d.total_debt})" style="border:none; background:#2ec4b6; color:white; padding:5px 10px; border-radius:8px; cursor:pointer;">پارەدان</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function addCustomer() {
+        const nameInput = document.getElementById('cust-name');
+        const phoneInput = document.getElementById('cust-phone');
+        
+        const name = nameInput.value.trim();
+        const phone = phoneInput.value.trim();
+
+        if(!name) {
+            alert("تکایە ناڤێ کڕیاری بنڤیسە!");
+            return;
+        }
+
+        const res = await fetch(`${SB_URL}/rest/v1/debts`, {
+            method: 'POST',
+            headers: { 
+                'apikey': SB_KEY, 
+                'Authorization': `Bearer ${SB_KEY}`, 
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal' 
+            },
+            body: JSON.stringify({ 
+                customer_name: name, 
+                phone: phone, // د ڤێرە دا ناڤێ ستوونێ دروست کر (phone)
+                total_debt: 0 
+            })
+        });
+
+        if(res.ok) {
+            nameInput.value = '';
+            phoneInput.value = '';
+            loadDebts(); // نووکرنا لیستێ بێی reload
+        } else {
+            const errorData = await res.json();
+            alert("کێشەیەک هەیە: " + errorData.message);
+        }
+    }
+
+    async function payDebt(id, currentDebt) {
+        const amount = prompt("بڕێ پارەیێ وەرگرتی بنڤیسە:");
+        if (!amount || isNaN(amount) || amount <= 0) return;
+
+        const newDebt = currentDebt - Number(amount);
+        if (newDebt < 0) return alert("ئەڤ بڕە زێدەترە ژ قەرزی!");
+
+        const res = await fetch(`${SB_URL}/rest/v1/debts?id=eq.${id}`, {
+            method: 'PATCH',
+            headers: { 
+                'apikey': SB_KEY, 
+                'Authorization': `Bearer ${SB_KEY}`, 
+                'Content-Type': 'application/json' 
+            },
+            body: JSON.stringify({ total_debt: newDebt })
+        });
+        
+        if(res.ok) loadDebts();
+    }
+
+    loadDebts();
+</script>
+</body>
+</html>

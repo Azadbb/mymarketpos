@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ڕێکخستن - فۆتەر POS</title>
+    <style>
+        :root { --primary: #4361ee; --bg: #f0f2f5; --dark: #011627; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; color: var(--dark); }
+        .input-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #555; }
+        input { width: 100%; padding: 12px; border: 2px solid #edf2f7; border-radius: 10px; outline: none; }
+        input:focus { border-color: var(--primary); }
+        .btn-save { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 16px; }
+        .btn-back { display: inline-block; margin-bottom: 20px; text-decoration: none; color: var(--primary); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <a href="pos.html" class="btn-back">← زڤڕین بۆ فرۆشتنێ</a>
+    <h2>⚙️ ڕێکخستنێن گشتی</h2>
+    
+    <div class="input-group">
+        <label>ناڤێ مارکێتێ (بۆ وەسڵێ):</label>
+        <input type="text" id="shop-name" placeholder="بۆ نموونە: مارکێتا دهۆک">
+    </div>
+
+    <div class="input-group">
+        <label>ژمارەیا مۆبایلێ (WhatsApp):</label>
+        <input type="text" id="shop-phone" placeholder="وەک: 964750XXXXXXX">
+    </div>
+
+    <div class="input-group">
+        <label>نامەیا کۆتاییا وەسڵێ:</label>
+        <input type="text" id="shop-msg" placeholder="وەک: سوپاس بۆ سەرەدانا وە">
+    </div>
+
+    <button class="btn-save" onclick="saveSettings()">پاشکەفتنا گوهۆڕینان ✅</button>
+</div>
+
+<script>
+    // بارکرنا داتایێن بەرهەڤکری
+    window.onload = function() {
+        document.getElementById('shop-name').value = localStorage.getItem('shopName') || "مارکێتا فۆتەر";
+        document.getElementById('shop-phone').value = localStorage.getItem('shopPhone') || "";
+        document.getElementById('shop-msg').value = localStorage.getItem('shopMsg') || "سوپاس بۆ سەرەدانا وە";
+    };
+
+    function saveSettings() {
+        localStorage.setItem('shopName', document.getElementById('shop-name').value);
+        localStorage.setItem('shopPhone', document.getElementById('shop-phone').value);
+        localStorage.setItem('shopMsg', document.getElementById('shop-msg').value);
+        alert("گوهۆڕین هاتنە پاشکەفتکرن!");
+    }
+</script>
+</body>
+</html>
