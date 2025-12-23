@@ -110,6 +110,11 @@
 <div id="receipt-print"></div>
 
 <script>
+
+if (localStorage.getItem('isLoggedIn') !== 'true') {
+    window.location.href = 'index.html'; // بزڤڕینە سەر لوگینێ
+}
+    
     const SB_URL = "https://yabwsyxffjsvkcxstevv.supabase.co";
     const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhYndzeXhmZmpzdmtjeHN0ZXZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMjcwODUsImV4cCI6MjA4MTkwMzA4NX0.p3s-m775YzbUYWH9-6rV4gWhonwHCyoEMSB0CpkfRJ4";
     
@@ -328,4 +333,5 @@ function sendToWhatsApp() {
 
 </script>
 </body>
+
 </html>
